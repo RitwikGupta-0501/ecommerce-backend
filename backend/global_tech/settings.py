@@ -276,19 +276,55 @@ STORAGES = {
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname:8} {name:30} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "logs" / "app.log",
+            "maxBytes": 1024 * 1024 * 10,  # 10MB
+            "backupCount": 30,
+            "formatter": "verbose",
+        },
+        "error_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "logs" / "error.log",
+            "maxBytes": 1024 * 1024 * 10,
+            "backupCount": 30,
+            "formatter": "verbose",
+            "level": "ERROR",
         },
     },
     "root": {
-        "handlers": ["console"],
-        "level": "WARNING",
+        "handlers": ["console", "file"],
+        "level": "INFO",
     },
     "loggers": {
         "django": {
-            "handlers": ["console"],
-            "level": "INFO",  # Change to 'DEBUG' to see everything
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django_q": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "ninja": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
             "propagate": False,
         },
     },

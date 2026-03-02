@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django_q.tasks import async_task
@@ -8,7 +10,8 @@ from ninja_jwt.tokens import AccessToken, RefreshToken
 
 from .schemas import AuthResponseSchema, UserOutSchema, UserRegisterSchema
 
-# Define the router
+logger = logging.getLogger(__name__)
+
 router = Router()
 
 User = get_user_model()
@@ -46,8 +49,7 @@ def register_user(request, data: UserRegisterSchema):
     except IntegrityError:
         raise HttpError(409, "A user with this email already exists.")
     except Exception as e:
-        # It's good practice to log the actual error in production
-        print(f"Registration Error: {e}")
+        logger.exception("Registration failed: %s", str(e))
         raise HttpError(500, "Internal Server Error during registration.")
 
 

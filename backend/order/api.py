@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import razorpay
@@ -17,6 +18,8 @@ from .schemas import (
     SavedAddressSchema,
 )
 
+logger = logging.getLogger(__name__)
+
 router = Router()
 
 
@@ -35,6 +38,11 @@ def get_razorpay_client():
 # --- ENDPOINTS ---
 @router.post("/initiate", response=OrderInitSchema, auth=JWTAuth())  # <--- Added Auth
 def initiate_order(request, data: OrderCreateSchema):
+    logger.info(
+        "Order initiation started for user: %s",
+        request.auth.email if request.auth else "anonymous",
+    )
+
     client = get_razorpay_client()
 
     with transaction.atomic():
@@ -110,6 +118,13 @@ def initiate_order(request, data: OrderCreateSchema):
         order.razorpay_order_id = razorpay_order["id"]
         order.save()
 
+    logger.info(
+        "Order %s initiated successfully. Amount: %s, Razorpay Order ID: %s",
+        order.id,
+        calculated_total,
+        order.razorpay_order_id,
+    )
+
     return {
         "order_id": order.id,
         "razorpay_order_id": order.razorpay_order_id,
@@ -129,13 +144,18 @@ def get_my_addresses(request):
 
 @router.post("/verify", auth=JWTAuth())
 def verify_payment(request, data: PaymentVerifySchema):
-    # Only the user who created the order should be able to verify it?
-    # Or just ensure they are logged in.
+    logger.info(
+        "Payment verification started for Razorpay order: %s", data.razorpay_order_id
+    )
 
     order = get_object_or_404(Order, razorpay_order_id=data.razorpay_order_id)
 
-    # Optional Security: Ensure the logged-in user owns this order
     if order.user != request.auth:
+        logger.warning(
+            "Unauthorized payment verification attempt for order %s by user %s",
+            order.id,
+            request.auth.email,
+        )
         raise HttpError(403, "You are not authorized to verify this order")
 
     client = get_razorpay_client()
@@ -151,6 +171,7 @@ def verify_payment(request, data: PaymentVerifySchema):
     except razorpay.errors.SignatureVerificationError:
         order.status = "FAILED"
         order.save()
+        logger.error("Payment signature verification failed for order %s", order.id)
         raise HttpError(400, "Invalid Payment Signature")
 
     with transaction.atomic():
@@ -158,5 +179,11 @@ def verify_payment(request, data: PaymentVerifySchema):
         order.razorpay_payment_id = data.razorpay_payment_id
         order.razorpay_signature = data.razorpay_signature
         order.save()
+
+    logger.info(
+        "Payment verified successfully for order %s. Razorpay Payment ID: %s",
+        order.id,
+        data.razorpay_payment_id,
+    )
 
     return {"status": "success", "message": "Payment verified successfully"}
