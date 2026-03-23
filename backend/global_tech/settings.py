@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from datetime import timedelta
 from pathlib import Path
-
 from dotenv import load_dotenv
 
 # Load the Secrets
@@ -32,7 +31,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG") == "True"
 
-ALLOWED_HOSTS = ["*"]
+allowed_hosts_string = os.getenv("ALLOWED_ORIGINS", "")
+ALLOWED_HOSTS = [origin.strip() for origin in allowed_hosts_string.split(",") if origin]
 
 
 # Application definition
@@ -153,21 +153,14 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # CORS Configuration
-# CORS_ALLOWED_ORIGINS = [
-#     "https://globaltechnologies-8aciib479-ritwik-guptas-projects.vercel.app",
-#     "https://globaltechnologies-ochre.vercel.app",
-#     "https://d1emer4ui8tqga.cloudfront.net",
-# ]
+cors_string = os.getenv("ALLOWED_ORIGINS", "")
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_string.split(",") if origin]
 
-CSRF_TRUSTED_ORIGINS = [
-    # Which origins can submit forms (like login)
-    "https://98.130.134.127.nip.io",
-    "https://globaltechnologies-ochre.vercel.app",
-    "https://globaltechnologies-8aciib479-ritwik-guptas-projects.vercel.app",
-]
-
+# Which origins can use unsafe methods like POST, DELETE and PUT
+# These origins MUST use HTTPS
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
@@ -211,7 +204,6 @@ Q_CLUSTER = {
     "retry": 120,  # Retry failed tasks after 120s
     "save_limit": 250,  # Keep last 250 finished tasks in DB for review
     "bulk": 10,
-    "orm": "default",  # Use Django ORM for storing task results/schedule
 }
 
 # Redis Configuration
@@ -273,6 +265,10 @@ STORAGES = {
 }
 
 # LOGGING CONFIG
+# Ensure the logs directory exists before configuring logging
+log_dir = BASE_DIR / "logs"
+log_dir.mkdir(parents=True, exist_ok=True)
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
