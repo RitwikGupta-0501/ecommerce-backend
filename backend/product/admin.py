@@ -43,6 +43,3 @@ class ProductAdmin(ModelAdmin):  # Inherit from ModelAdmin
         }
 
         return initial
-
-
-admin.site.register(ProductImage)
