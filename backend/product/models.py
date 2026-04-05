@@ -34,9 +34,14 @@ class Product(models.Model):
     specifications = models.JSONField(default=dict, blank=True)
 
     def save(self, *args, **kwargs):
-        # 2. Auto-generate slug from name if it's empty
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            while Product.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
         super().save(*args, **kwargs)
 
     def __str__(self):
