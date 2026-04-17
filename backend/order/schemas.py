@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from ninja import Schema
+from pydantic import Field
 
 
 # --- SCHEMAS ---
@@ -14,7 +15,7 @@ class AddressSchema(Schema):
 
 class OrderItemSchema(Schema):
     product_id: int
-    quantity: int
+    quantity: int = Field(..., gt=0)
 
 
 class OrderCreateSchema(Schema):

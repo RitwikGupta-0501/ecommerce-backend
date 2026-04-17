@@ -23,7 +23,7 @@ def list_products(
     qs = Product.objects.prefetch_related("images").all()
     if category:
         qs = qs.filter(category__iexact=category)
-    if type:
+    if type_filter:
         qs = qs.filter(type__iexact=type_filter)
     if price_type:
         qs = qs.filter(price_type=price_type)

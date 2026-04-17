@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, IntegrityError, transaction
 from django.utils.text import slugify
 
 
@@ -38,11 +38,17 @@ class Product(models.Model):
             base_slug = slugify(self.name)
             slug = base_slug
             counter = 1
-            while Product.objects.filter(slug=slug).exclude(pk=self.pk).exists():
-                slug = f"{base_slug}-{counter}"
-                counter += 1
-            self.slug = slug
-        super().save(*args, **kwargs)
+            while True:
+                self.slug = slug
+                try:
+                    with transaction.atomic():
+                        super().save(*args, **kwargs)
+                    break
+                except IntegrityError:
+                    slug = f"{base_slug}-{counter}"
+                    counter += 1
+        else:
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name

@@ -15,7 +15,7 @@ router = Router()
 
 
 # --- Endpoints ---
-@router.post("/request", response=QuoteSuccessSchema, auth=JWTAuth())
+@router.post("/request", response=QuoteSuccessSchema, auth=None)
 def create_quote_request(request, data: QuoteInputSchema):
     """
     To allow guests to send quotes: Check issue #24 comment.
@@ -24,7 +24,7 @@ def create_quote_request(request, data: QuoteInputSchema):
 
     quote = QuoteRequest.objects.create(
         product=product,
-        user=request.auth,
+        user=getattr(request, 'auth', None),
         email=data.email,
         phone=data.phone,
         quantity=data.quantity,

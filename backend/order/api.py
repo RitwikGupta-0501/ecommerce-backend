@@ -70,22 +70,37 @@ def initiate_order(request, data: OrderCreateSchema):
             status="PENDING",
         )
 
-        # 2. Process Items (Same as before)
+        # 2. Process Items (Bulk optimized)
+        product_ids = [item.product_id for item in data.items]
+        products = Product.objects.in_bulk(product_ids)
+
         calculated_total = 0
+        order_items_to_create = []
+
         for item_data in data.items:
-            product = get_object_or_404(Product, id=item_data.product_id)
+            product = products.get(item_data.product_id)
+            if not product:
+                raise HttpError(404, f"Product with ID {item_data.product_id} not found")
+
             if product.price_type != "fixed" or not product.price:
-                continue
+                raise HttpError(400, f"Product {product.name} is not available for direct purchase")
 
             line_total = product.price * item_data.quantity
             calculated_total += line_total
 
-            OrderItem.objects.create(
-                order=order,
-                product=product,
-                quantity=item_data.quantity,
-                price_at_purchase=product.price,
+            order_items_to_create.append(
+                OrderItem(
+                    order=order,
+                    product=product,
+                    quantity=item_data.quantity,
+                    price_at_purchase=product.price,
+                )
             )
+
+        if not order_items_to_create:
+            raise HttpError(400, "Order must contain at least one valid item")
+
+        OrderItem.objects.bulk_create(order_items_to_create)
 
         order.total_amount = calculated_total
         order.save()
@@ -157,6 +172,10 @@ def verify_payment(request, data: PaymentVerifySchema):
             request.auth.email,
         )
         raise HttpError(403, "You are not authorized to verify this order")
+
+    # Idempotency check
+    if order.status == "PAID":
+        return {"status": "success", "message": "Payment already verified"}
 
     client = get_razorpay_client()
 

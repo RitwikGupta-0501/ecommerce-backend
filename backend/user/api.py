@@ -5,6 +5,7 @@ from django.db import IntegrityError
 from django_q.tasks import async_task
 from ninja import Router
 from ninja.errors import HttpError
+from ninja.throttling import AnonRateThrottle
 from ninja_jwt.authentication import JWTAuth
 from ninja_jwt.tokens import AccessToken, RefreshToken
 
@@ -17,7 +18,11 @@ router = Router()
 User = get_user_model()
 
 
-@router.post("/register", response={201: AuthResponseSchema}, auth=None)
+class AuthThrottle(AnonRateThrottle):
+    scope = "auth"
+
+
+@router.post("/register", response={201: AuthResponseSchema}, auth=None, throttle=AuthThrottle())
 def register_user(request, data: UserRegisterSchema):
     try:
         # 1. Create User
