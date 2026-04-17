@@ -14,9 +14,18 @@ import os
 from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
+import sentry_sdk
 
 # Load the Secrets
 load_dotenv()
+
+sentry_dsn = os.environ.get("SENTRY_DSN")
+if sentry_dsn:
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,7 +35,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable is required for production.")
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG") == "True"
@@ -106,6 +118,7 @@ DATABASES = {
         "PASSWORD": os.getenv("DB_PSWD"),
         "PORT": os.getenv("DB_PORT"),
         "HOST": os.getenv("DB_HOST"),
+        "CONN_MAX_AGE": int(os.environ.get("CONN_MAX_AGE", 600)),
     }
 }
 
@@ -176,6 +189,11 @@ CORS_ALLOW_HEADERS = [
 ]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 # JWT Configuration
 NINJA_JWT = {
@@ -251,6 +269,7 @@ NINJA_THROTTLE_RATES = {
 # RAZORPAY CONFIGURATION
 RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET")
+RAZORPAY_WEBHOOK_SECRET = os.environ.get("RAZORPAY_WEBHOOK_SECRET")
 
 # WHITENOISE CONTENT DISTRIBUTION CONFIG
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"

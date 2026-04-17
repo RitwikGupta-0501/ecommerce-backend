@@ -20,6 +20,8 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
 from ninja_extra import NinjaExtraAPI
+from ninja.errors import HttpError
+from django.db import connection
 from ninja_jwt.controller import NinjaJWTDefaultController
 from order.api import router as order_router
 from product.api import router as product_router
@@ -36,6 +38,14 @@ api.add_router("/products", product_router)
 api.add_router("/auth", user_auth_router)
 api.add_router("/quotes", quotes_router)
 api.add_router("/order", order_router)
+
+@api.get("/health", tags=["System"], auth=None)
+def health_check(request):
+    try:
+        connection.ensure_connection()
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        raise HttpError(503, f"Database unavailable: {str(e)}")
 
 urlpatterns = [
     path("admin/", admin.site.urls),  # URL for Admin page (handled by base django)

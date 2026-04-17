@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import List
 
@@ -206,3 +207,65 @@ def verify_payment(request, data: PaymentVerifySchema):
     )
 
     return {"status": "success", "message": "Payment verified successfully"}
+
+
+@router.post("/webhook", auth=None)
+def razorpay_webhook(request):
+    """
+    Razorpay Webhook to ensure payments are captured
+    even if the user closes their browser prematurely.
+    """
+    signature = request.headers.get("X-Razorpay-Signature", "")
+    body_data = request.body.decode("utf-8")
+    client = get_razorpay_client()
+
+    if not settings.RAZORPAY_WEBHOOK_SECRET:
+        logger.error("RAZORPAY_WEBHOOK_SECRET is not configured.")
+        raise HttpError(500, "Webhook secret not configured")
+
+    try:
+        client.utility.verify_webhook_signature(
+            body_data, signature, settings.RAZORPAY_WEBHOOK_SECRET
+        )
+    except razorpay.errors.SignatureVerificationError:
+        logger.error("Invalid Razorpay webhook signature")
+        raise HttpError(400, "Invalid webhook signature")
+
+    try:
+        payload = json.loads(body_data)
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON payload in webhook")
+        raise HttpError(400, "Invalid payload")
+
+    try:
+        event = payload.get("event")
+        
+        # We listen for both order.paid and payment.captured
+        if event in ("payment.captured", "order.paid"):
+            
+            if event == "order.paid":
+                razorpay_order_id = payload["payload"]["order"]["entity"]["id"]
+                razorpay_payment_id = None # Usually captured via payment.captured
+            else:
+                razorpay_order_id = payload["payload"]["payment"]["entity"]["order_id"]
+                razorpay_payment_id = payload["payload"]["payment"]["entity"]["id"]
+
+            if razorpay_order_id:
+                order = Order.objects.filter(razorpay_order_id=razorpay_order_id).first()
+                if order and order.status != "PAID":
+                    order.status = "PAID"
+                    if razorpay_payment_id:
+                        order.razorpay_payment_id = razorpay_payment_id
+                    order.save()
+                    logger.info("Order %s marked as PAID via webhook event: %s", order.id, event)
+                    
+    except KeyError as e:
+        logger.error("Missing expected key in Razorpay webhook payload: %s", str(e))
+        # Return 400 for malformed payloads so it's clear the request itself is bad
+        raise HttpError(400, "Malformed payload structure")
+    except Exception as e:
+        logger.exception("Unexpected error processing Razorpay webhook: %s", str(e))
+        # Raise 500 for DB issues or unexpected errors so Razorpay RETRIES the webhook later
+        raise HttpError(500, "Internal server error")
+        
+    return {"status": "success"}
