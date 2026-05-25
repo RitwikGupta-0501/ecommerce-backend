@@ -7,12 +7,12 @@ from .models import Order, OrderItem, SavedAddress
 class OrderItemInLine(TabularInline):
     model = OrderItem
     extra = 0
-    readonly_fields = ("product", "quatity", "price_at_purchase")
+    readonly_fields = ("product", "quantity", "price_at_purchase")
 
 
 @admin.register(Order)
 class OrderAdmin(ModelAdmin):
-    inlines = [OrderItemInline]
+    inlines = [OrderItemInLine]
     list_display = (
         "id",
         "first_name",

@@ -1,14 +1,13 @@
 services:
-  postgres-db:
-    image: postgres:16-alpine
-    container_name: global_tech_postgres
+  mysql-db:
+    image: mysql:8.0
+    container_name: global_tech_mysql
     restart: on-failure
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: root
-      POSTGRES_DB: global_tech
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: global_tech
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
       - /data/Programming/postgresql/data:/var/lib/postgresql/data
 

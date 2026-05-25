@@ -44,7 +44,7 @@ if not SECRET_KEY:
 DEBUG = os.getenv("DEBUG") == "True"
 
 allowed_hosts_string = os.getenv("ALLOWED_ORIGINS", "")
-ALLOWED_HOSTS = [origin.strip() for origin in allowed_hosts_string.split(",") if origin]
+ALLOWED_HOSTS = [origin.strip() for origin in allowed_hosts_string.split(",") if origin] or ["*", "localhost", "127.0.0.1"]
 
 
 # Application definition
@@ -112,7 +112,7 @@ WSGI_APPLICATION = "global_tech.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": "django.db.backends.mysql",
         "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PSWD"),
@@ -121,6 +121,9 @@ DATABASES = {
         "CONN_MAX_AGE": int(os.environ.get("CONN_MAX_AGE", 600)),
     }
 }
+
+# Silence warnings about MySQL not supporting conditional indexes (used by django-q)
+SILENCED_SYSTEM_CHECKS = ["models.W037"]
 
 
 # Password validation
@@ -170,6 +173,9 @@ cors_string = os.getenv("ALLOWED_ORIGINS", "")
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_string.split(",") if origin]
+
+if DEBUG and not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOW_ALL_ORIGINS = True
 
 # Which origins can use unsafe methods like POST, DELETE and PUT
 # These origins MUST use HTTPS
@@ -258,7 +264,7 @@ else:
     EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 # Always set a default sender
 DEFAULT_FROM_EMAIL = os.environ.get(
-    "DEFAULT_FROM_EMAIL", "NexGen Support <noreply@nexgen.com>"
+    "DEFAULT_FROM_EMAIL", "Global Technologies Support <noreply@globaltech.com>"
 )
 
 # Security
@@ -272,7 +278,7 @@ RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET")
 RAZORPAY_WEBHOOK_SECRET = os.environ.get("RAZORPAY_WEBHOOK_SECRET")
 
 # WHITENOISE CONTENT DISTRIBUTION CONFIG
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 STORAGES = {
     "default": {

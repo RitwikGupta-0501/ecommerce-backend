@@ -65,7 +65,7 @@ packaging==25.0
     # via gunicorn
 pillow==12.1.0
     # via global-technologies (pyproject.toml)
-psycopg2-binary==2.9.11
+mysqlclient==2.2.4
     # via global-technologies (pyproject.toml)
 pycparser==2.23
     # via cffi

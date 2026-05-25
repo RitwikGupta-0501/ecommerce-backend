@@ -45,7 +45,7 @@ def send_quote_email_task(quote_id):
         Our team has received your request and will get back to you shortly with pricing and availability.
 
         Best regards,
-        The NexGen Team
+        The Global Technologies Team
         """
 
         send_mail(
