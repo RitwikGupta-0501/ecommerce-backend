@@ -34,4 +34,7 @@ def list_products(
 
 @router.get("/{product_id}", response=ProductSchema)
 def get_product(request, product_id: int):
-    return get_object_or_404(Product, id=product_id)
+    return get_object_or_404(
+        Product.objects.prefetch_related("images"),
+        id=product_id
+    )

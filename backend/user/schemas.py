@@ -5,6 +5,10 @@ from pydantic import EmailStr, Field, field_validator, model_validator
 
 
 # --- Input Schema (What the user sends) ---
+class UserLoginSchema(Schema):
+    email: EmailStr
+    password: str
+
 class UserRegisterSchema(Schema):
     email: EmailStr
     first_name: str

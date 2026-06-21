@@ -189,8 +189,9 @@ def verify_payment(request, data: PaymentVerifySchema):
             }
         )
     except razorpay.errors.SignatureVerificationError:
-        order.status = "FAILED"
-        order.save()
+        with transaction.atomic():
+            order.status = "FAILED"
+            order.save(update_fields=["status", "updated_at"])
         logger.error("Payment signature verification failed for order %s", order.id)
         raise HttpError(400, "Invalid Payment Signature")
 
@@ -198,7 +199,7 @@ def verify_payment(request, data: PaymentVerifySchema):
         order.status = "PAID"
         order.razorpay_payment_id = data.razorpay_payment_id
         order.razorpay_signature = data.razorpay_signature
-        order.save()
+        order.save(update_fields=["status", "razorpay_payment_id", "razorpay_signature", "updated_at"])
 
     logger.info(
         "Payment verified successfully for order %s. Razorpay Payment ID: %s",

@@ -45,7 +45,10 @@ def health_check(request):
         connection.ensure_connection()
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
-        raise HttpError(503, f"Database unavailable: {str(e)}")
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error("Health check database connection failed: %s", str(e))
+        raise HttpError(503, "Service unavailable")
 
 urlpatterns = [
     path("admin/", admin.site.urls),  # URL for Admin page (handled by base django)

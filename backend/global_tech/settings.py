@@ -23,8 +23,9 @@ sentry_dsn = os.environ.get("SENTRY_DSN")
 if sentry_dsn:
     sentry_sdk.init(
         dsn=sentry_dsn,
-        traces_sample_rate=1.0,
-        profiles_sample_rate=1.0,
+        traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        profiles_sample_rate=float(os.environ.get("SENTRY_PROFILES_SAMPLE_RATE", "0.05")),
+        environment=os.environ.get("ENVIRONMENT", "production"),
     )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -44,7 +45,21 @@ if not SECRET_KEY:
 DEBUG = os.getenv("DEBUG") == "True"
 
 allowed_hosts_string = os.getenv("ALLOWED_ORIGINS", "")
-ALLOWED_HOSTS = [origin.strip() for origin in allowed_hosts_string.split(",") if origin] or ["*", "localhost", "127.0.0.1"]
+cors_origins = [origin.strip() for origin in allowed_hosts_string.split(",") if origin.strip()]
+
+from urllib.parse import urlparse
+allowed_hosts_from_origins = [
+    urlparse(origin).hostname
+    for origin in cors_origins
+    if urlparse(origin).hostname
+]
+
+if DEBUG:
+    ALLOWED_HOSTS = allowed_hosts_from_origins + ["localhost", "127.0.0.1"]
+else:
+    if not allowed_hosts_from_origins:
+        raise ValueError("ALLOWED_ORIGINS must be set in production")
+    ALLOWED_HOSTS = allowed_hosts_from_origins
 
 
 # Application definition
@@ -245,7 +260,7 @@ CACHES = {
     }
 }
 
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 SESSION_CACHE_ALIAS = "default"
 
 # Email Configuration
@@ -270,6 +285,7 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 # Security
 NINJA_THROTTLE_RATES = {
     "auth": "5/m",  # Allow only 5 attempts per minute per IP
+    "quote": "3/m",
 }
 
 # RAZORPAY CONFIGURATION

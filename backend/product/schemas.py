@@ -31,8 +31,9 @@ class ProductSchema(Schema):
     # Extract URL strings from the related ProductImage model
     @staticmethod
     def resolve_images(obj):
-        # This assumes you have configured MEDIA_URL in settings.py
-        return [img.image.url for img in obj.images.all()]
+        from django.conf import settings
+        base = getattr(settings, 'MEDIA_URL_BASE', '')
+        return [f"{base}{img.image.url}" for img in obj.images.all()]
 
     class Config:
         from_attributes = True

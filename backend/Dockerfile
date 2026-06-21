@@ -1,4 +1,4 @@
-FROM python:3.14-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create media and static directories
-RUN mkdir -p media staticfiles
+RUN mkdir -p media staticfiles static
 
 # Collect static files during build
 RUN SECRET_KEY="dummy_key_for_build" DEBUG="True" python manage.py collectstatic --noinput
@@ -33,4 +33,4 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["gunicorn", "global_tech.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--access-logfile", "-", "--error-logfile", "-"]
+CMD ["sh", "-c", "gunicorn global_tech.wsgi:application --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-3} --access-logfile - --error-logfile -"]

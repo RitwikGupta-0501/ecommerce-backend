@@ -14,8 +14,13 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
+from ninja.throttling import AnonRateThrottle
+
+class QuoteThrottle(AnonRateThrottle):
+    scope = "quote"
+
 # --- Endpoints ---
-@router.post("/request", response=QuoteSuccessSchema, auth=None)
+@router.post("/request", response=QuoteSuccessSchema, auth=None, throttle=QuoteThrottle())
 def create_quote_request(request, data: QuoteInputSchema):
     """
     To allow guests to send quotes: Check issue #24 comment.

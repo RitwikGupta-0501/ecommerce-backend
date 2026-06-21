@@ -1,7 +1,8 @@
 from typing import List, Optional
 
 from ninja import Schema
-from pydantic import Field
+from pydantic import Field, EmailStr, field_validator
+import re
 
 
 # --- SCHEMAS ---
@@ -19,20 +20,23 @@ class OrderItemSchema(Schema):
 
 
 class OrderCreateSchema(Schema):
-    # Personal
-    first_name: str
-    last_name: str
-    email: str
-    phone: str
-    # Business
-    company_name: Optional[str]
-    gstin: Optional[str]
-    # Addresses
+    first_name: str = Field(..., max_length=100)
+    last_name: str = Field(..., max_length=100)
+    email: EmailStr
+    phone: str = Field(..., pattern=r"^\+?[\d\s\-()]{7,15}$")
+    company_name: Optional[str] = Field(None, max_length=255)
+    gstin: Optional[str] = Field(None, max_length=15)
     billing_address: AddressSchema
     shipping_address: AddressSchema
-    # Cart
-    items: List[OrderItemSchema]
+    items: List[OrderItemSchema] = Field(..., min_length=1, max_length=50)
     save_info: bool = False
+
+    @field_validator("gstin")
+    @classmethod
+    def validate_gstin(cls, v):
+        if v and not re.match(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", v):
+            raise ValueError("Invalid GSTIN format")
+        return v
 
 
 class OrderInitSchema(Schema):
